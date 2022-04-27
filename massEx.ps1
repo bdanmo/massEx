@@ -1,10 +1,18 @@
-﻿function sayBye {
+﻿#####################
+#FUNCTION DEFINITIONS
+#####################
+
+function sayBye {
+
+    param ($Code)
+
     Write-Output "Goodbye! Closing in..."
         for ($i=3; $i -gt 0; $i--) {
             Write-Output $i
             Start-Sleep -Seconds 1
         }
-        Exit(0)
+
+        Exit($Code)
 }
  
 function YesOrNo {
@@ -16,54 +24,94 @@ function YesOrNo {
 	    $reply = Read-Host -Prompt $Prompt
     }
 
-    return $reply
+    if ($reply.ToUpper() -eq "Y") {
+        return $true
+    } elseif ($reply.ToUpper() -eq "N") {
+        return $false
+    }
 }
+
+function uninstallAll {
+    param ($List)
+
+    function uninstallThis {
+        param ($App)
+
+        $uninstall = 
+            if( $App.Uninstallstring -match '^msiexec' ){
+                "$( $App.UninstallString -replace '/I', '/X' ) /qn /norestart"
+            } else {
+                $App.UninstallString
+            }
+
+        Write-Verbose $uninstall
+        $proc = Start-Process -Filepath cmd -ArgumentList '/c', $uninstall -NoNewWindow -PassThru -Wait
+        return $proc
+    }
+
+    foreach ($app in $List) {
+        Write-Output "Attempting uninstall of $($app.DisplayName)..."
+        $proc = uninstallThis $app
+        
+        if ($proc.ExitCode -eq 0) {
+            #goodtimes
+            Write-Output "Uninstall of $($app.DisplayName) was successful, I guess."
+        } elseif ($proc.ExitCode -eq 1603) {
+            #process running, attempt kill and recurse
+            Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running."
+        } else {
+            #awfuck
+            Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ReturnValue)"
+        }          
+    }
+
+    return $LASTEXITCODE
+}
+
+################
+#START EXECUTION
+################
 
 Write-Warning "This program could destroy your computer."
 Start-Sleep -Seconds 1
 $continue = YesOrNo -Prompt "Do you wish to continue? (Y/N) "
 
-
-if($continue.ToUpper() -eq "Y") {
-    $name = Read-Host -Prompt "Search for all programs with a name including"
-    $Apps = Get-WmiObject -Class Win32_Product | Where-Object{$_.Name -like "*$name*"}
+if($continue) {
+    $name = Read-Host -Prompt "Search for all programs where name includes "
+    $RegKeys = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\'
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\'
+    )
+    $apps = $RegKeys |
+            Get-ChildItem |
+            Get-ItemProperty | 
+            Where-Object{$_.DisplayName -like "*$name*" -and $_.UninstallString}
+    
 
     if ($apps) {
-        Write-Output $Apps
+
+        $appList = $apps | Select-Object -Property DisplayName, Publisher
+       
+        Write-Output $appList | Out-Host
 
         $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
-        if ($uninst.toUpper() -eq "Y") {
-            try {
-                Write-Output "Attempting uninstall..."
 
-                foreach ($app in $Apps) {
-                    $proc = $App.Uninstall()
-                
-                    if ($proc.ReturnValue -eq 0) {
-                        #goodtimes
-                        Write-Output "Uninstall of $($app.name) was successful, I guess."
-                    } elseif ($proc.ReturnValue -eq 3) {
-                        #awfuck
-                        Write-Error "This is bad."
-                    } elseif ($proc.ReturnValue -eq 1603) {
-                        Write-Error "$($app.name) is running and could not be uninstalled"
-                    }
-                }
-               
+        if ($uninst) {
+            try {
+                uninstallAll $apps
             } catch {
                 Write-Error $Error
             }
-
-            sayBye
-        } elseif ($uninst.toUpper() -eq "N") {
-            sayBye
+            sayBye 0
+        } elseif (!$uninst) {
+            sayBye 0
         }
     } else {
         Write-Output "No programs with a name containing `"$name`" were found."
-        sayBye
+        sayBye 1 
     }
-} elseif ($continue.ToUpper() -eq "N") {
-    sayBye
+} elseif (!$continue) {
+    sayBye 0
 }
 
 
