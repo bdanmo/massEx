@@ -33,7 +33,28 @@ if($continue.ToUpper() -eq "Y") {
 
         $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
         if ($uninst.toUpper() -eq "Y") {
-            $Apps.Uninstall()
+            try {
+                Echo "Attempting uninstall..."
+
+                foreach ($app in $Apps) {
+                    $proc = $App.Uninstall()
+                
+                    if ($proc.ReturnValue -eq 0) {
+                        #goodtimes
+                        Echo "Uninstall of $($app.name) was successful, I guess."
+                    } elseif ($proc.ReturnValue -eq 3) {
+                        #awfuck
+                        Write-Error "This is bad."
+                    } elseif ($proc.ReturnValue -eq 1603) {
+                        Write-Error "$($app.name) is running and could not be uninstalled"
+                    }
+                }
+               
+            } catch {
+                Write-Error $Error
+            }
+
+            sayBye
         } elseif ($uninst.toUpper() -eq "N") {
             sayBye
         }
