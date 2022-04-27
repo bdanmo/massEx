@@ -1,7 +1,7 @@
 ﻿function sayBye {
-    Echo "Goodbye! Closing in..."
+    Write-Output "Goodbye! Closing in..."
         for ($i=3; $i -gt 0; $i--) {
-            Echo $i
+            Write-Output $i
             Start-Sleep -Seconds 1
         }
         Exit(0)
@@ -34,14 +34,14 @@ if($continue.ToUpper() -eq "Y") {
         $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
         if ($uninst.toUpper() -eq "Y") {
             try {
-                Echo "Attempting uninstall..."
+                Write-Output "Attempting uninstall..."
 
                 foreach ($app in $Apps) {
                     $proc = $App.Uninstall()
                 
                     if ($proc.ReturnValue -eq 0) {
                         #goodtimes
-                        Echo "Uninstall of $($app.name) was successful, I guess."
+                        Write-Output "Uninstall of $($app.name) was successful, I guess."
                     } elseif ($proc.ReturnValue -eq 3) {
                         #awfuck
                         Write-Error "This is bad."
@@ -59,7 +59,7 @@ if($continue.ToUpper() -eq "Y") {
             sayBye
         }
     } else {
-        Echo "No programs with a name containing `"$name`" were found."
+        Write-Output "No programs with a name containing `"$name`" were found."
         sayBye
     }
 } elseif ($continue.ToUpper() -eq "N") {
