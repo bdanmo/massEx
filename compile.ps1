@@ -1,0 +1,1 @@
+Invoke-ps2exe .\massEx.ps1 .\massEx.exe
