@@ -60,7 +60,7 @@ function uninstallAll {
             #process running, attempt kill and recurse
             Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running."
         } else {
-            #awfuck
+            #awshucks
             Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ReturnValue). Try closing the process or running the exe as admin."
         }          
     }
