@@ -65,8 +65,9 @@ function uninstallAll {
             Write-Output "Uninstall of $($app.DisplayName) was successful, I guess. Why don't you check?"
             searchAgain? $proc.ExitCode
         } elseif ($proc.ExitCode -eq 1603) {
-            #process running, attempt kill and recurse
-            Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running."
+            #process running or needs admin
+            #add option to attmept kill process later
+            Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running. Try closing the process."
             searchAgain? $proc.ExitCode
         } else {
             #awshucks
