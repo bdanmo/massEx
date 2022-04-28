@@ -68,15 +68,7 @@ function uninstallAll {
     return $LASTEXITCODE
 }
 
-################
-#START EXECUTION
-################
-
-Write-Warning "This program could destroy your computer."
-Start-Sleep -Seconds 1
-$continue = YesOrNo -Prompt "Do you wish to continue? (Y/N) "
-
-if($continue) {
+function searchAndDestroy {
     $name = Read-Host -Prompt "Search for all programs where name includes "
     $RegKeys = @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\'
@@ -100,7 +92,7 @@ if($continue) {
             try {
                 uninstallAll $apps
             } catch {
-                Write-Error $Error
+                Write-Error "Error while attempting uninstall : $Error"
             }
             sayBye 0
         } elseif (!$uninst) {
@@ -108,8 +100,20 @@ if($continue) {
         }
     } else {
         Write-Output "No programs with a name containing `"$name`" were found."
-        sayBye 1 
+        sayBye 0 
     }
+}
+
+################
+#START EXECUTION
+################
+
+Write-Warning "This program could destroy your computer."
+Start-Sleep -Seconds 1
+$continue = YesOrNo -Prompt "Do you wish to continue? (Y/N) "
+
+if($continue) {
+    searchAndDestroy
 } elseif (!$continue) {
     sayBye 0
 }
