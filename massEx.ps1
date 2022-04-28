@@ -31,6 +31,13 @@ function YesOrNo {
     }
 }
 
+function searchAgain? {
+    param ($code)
+    $searchAgain = YesOrNo "Search for another? (Y/N) "
+    if ($searchAgain) {searchAndDestroy}
+    elseif (!$searchAgain) {sayBye $code}
+}
+
 function uninstallAll {
     param ($List)
 
@@ -56,22 +63,19 @@ function uninstallAll {
         if ($proc.ExitCode -eq 0) {
             #goodtimes
             Write-Output "Uninstall of $($app.DisplayName) was successful, I guess. Why don't you check?"
+            searchAgain? $proc.ExitCode
         } elseif ($proc.ExitCode -eq 1603) {
             #process running, attempt kill and recurse
             Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running."
+            searchAgain? $proc.ExitCode
         } else {
             #awfuck
             Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ReturnValue). Try closing the process or running the exe as admin."
+            searchAgain? $proc.ExitCode
         }          
     }
 
     return $LASTEXITCODE
-}
-
-function searchAgain? {
-    $searchAgain = YesOrNo "Search for another? (Y/N) "
-    if ($searchAgain) {searchAndDestroy}
-    elseif (!$searchAgain) {sayBye 0}
 }
 
 function searchAndDestroy {
@@ -96,17 +100,16 @@ function searchAndDestroy {
 
         if ($uninst) {
             try {
-                uninstallAll $apps
+                $proc = uninstallAll $apps
             } catch {
                 Write-Error "Error while attempting uninstall : $Error"
             }
-            searchAgain?
         } elseif (!$uninst) {
-            searchAgain?
+            searchAgain? 0
         }
     } else {
         Write-Output "No programs with a name containing `"$name`" were found."
-        searchAgain?
+        searchAgain? 0
     }
 }
 
