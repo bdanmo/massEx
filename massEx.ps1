@@ -90,13 +90,9 @@ function searchAndDestroy {
             Get-ItemProperty | 
             Where-Object{$_.DisplayName -like "*$name*" -and $_.UninstallString}
     
-
     if ($apps) {
-
         $appList = $apps | Select-Object -Property DisplayName, Publisher
-       
         Write-Output $appList | Out-Host
-
         $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
 
         if ($uninst) {
