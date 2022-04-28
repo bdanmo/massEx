@@ -101,7 +101,7 @@ function searchAndDestroy {
 
         if ($uninst) {
             try {
-                $proc = uninstallAll $apps
+                uninstallAll $apps
             } catch {
                 Write-Error "Error while attempting uninstall : $Error"
             }
