@@ -4,6 +4,16 @@
 
 $VerbosePreference = "continue"
 
+function Green
+{
+    process { Write-Host $_ -ForegroundColor Green }
+}
+
+function Red
+{
+    process { Write-Host $_ -ForegroundColor Red }
+}
+
 function sayBye {
 
     param ($Code)
@@ -33,15 +43,16 @@ function YesOrNo {
     }
 }
 
-function searchAgain? {
-    param ($code)
-    $searchAgain = YesOrNo "Search for another? (Y/N) "
-    if ($searchAgain) {searchAndDestroy}
-    elseif (!$searchAgain) {sayBye $code}
-}
-
 function uninstallAll {
     param ($List)
+
+    $status = [PSCustomObject]@{
+        error = $false
+        message = ""
+        successCount = 0
+        failCount = 0
+        total = 0
+    }
 
     function uninstallThis {
         param ($App)
@@ -60,25 +71,45 @@ function uninstallAll {
 
     foreach ($app in $List) {
         Write-Output "Attempting uninstall of $($app.DisplayName)..."
+        $status.total += 1
         $proc = uninstallThis $app
         
         if ($proc.ExitCode -eq 0) {
             #goodtimes
-            Write-Output "Uninstall of $($app.DisplayName) was successful, I guess. Why don't you check?"
+            Write-Output "Uninstall of $($app.DisplayName) was successful."
+            $status.successCount += 1
         } elseif ($proc.ExitCode -eq 1603) {
             #process running or needs admin
-            #add option to attmept kill process later
             Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running. Try closing the process."
+            $status.failCount += 1
+            $status.error = $true
         } else {
             #awshucks
-            Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ExitCode). Try running as admin."
+            Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ExitCode)."
+            $status.failCount += 1
+            $status.error = $true
         }          
     }
 
-    return $LASTEXITCODE
+    if ($status.error) {
+        $status.message = "Batch uninstall completed with errors. Failed to uninstall $($status.failCount) of $($status.total) apps."
+        return $status
+    } else {
+        $status.message = "Batch uninstall complete! $($status.successCount) of $($status.total) programs successfully removed."
+        return $status  
+    }
+    
 }
 
 function searchAndDestroy {
+
+    function searchAgain {
+        param ($code)
+        $searchAgain = YesOrNo "Search for another? (Y/N) "
+        if ($searchAgain) {searchAndDestroy}
+        elseif (!$searchAgain) {sayBye $code}
+    }
+
     $name = Read-Host -Prompt "Search for all programs where name includes "
     $RegKeys = @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\'
@@ -95,18 +126,21 @@ function searchAndDestroy {
         $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
 
         if ($uninst) {
-            try {
-                uninstallAll $apps
-            } catch {
-                Write-Error "Error while attempting uninstall : $Error"
-		        SearchAgain? 1
+            $proc = uninstallAll $apps
+            if ($proc.error) {
+                Write-Warning $proc.message
+                searchAgain 1
+            } else {
+                Write-Output $proc.message | Green
+                searchAgain 0
             }
+            
         } elseif (!$uninst) {
-            searchAgain? 0
+            SearchAgain 0
         }
     } else {
-        Write-Output "No programs with a name containing `"$name`" were found."
-        searchAgain? 0
+        Write-Output "No programs with a name containing `"$name`" were found." | Red
+        SearchAgain 0
     }
 }
 
