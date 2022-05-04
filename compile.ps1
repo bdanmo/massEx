@@ -1,1 +1,1 @@
-Invoke-ps2exe .\massEx.ps1 .\massEx.exe
+Invoke-ps2exe .\massEx.ps1 .\bloatEx.exe
