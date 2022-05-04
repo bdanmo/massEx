@@ -2,6 +2,8 @@
 #FUNCTION DEFINITIONS
 #####################
 
+$VerbosePreference = "continue"
+
 function sayBye {
 
     param ($Code)
@@ -45,14 +47,14 @@ function uninstallAll {
         param ($App)
 
         $uninstall = 
-            if( $App.Uninstallstring -match '^msiexec' ){
-                "$( $App.UninstallString -replace '/I', '/X' ) /qn /norestart"
+            if( $App.UninstallString -match "^msiexec" ){
+               "$( $App.UninstallString -replace '/I', '/X' ) /qn /norestart"   
             } else {
                 $App.UninstallString
             }
-
-        Write-Verbose $uninstall
-        $proc = Start-Process -Filepath cmd -ArgumentList '/c', $uninstall -NoNewWindow -PassThru -Wait
+        
+        Write-Output "Uninstall Path: $uninstall"
+        $proc = Start-Process -Filepath cmd -ArgumentList "/C", $uninstall -NoNewWindow -PassThru -Wait
         return $proc
     }
 
@@ -63,16 +65,13 @@ function uninstallAll {
         if ($proc.ExitCode -eq 0) {
             #goodtimes
             Write-Output "Uninstall of $($app.DisplayName) was successful, I guess. Why don't you check?"
-            searchAgain? $proc.ExitCode
         } elseif ($proc.ExitCode -eq 1603) {
             #process running or needs admin
             #add option to attmept kill process later
             Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running. Try closing the process."
-            searchAgain? $proc.ExitCode
         } else {
             #awshucks
-            Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ReturnValue). Try closing the process or running the exe as admin."
-            searchAgain? $proc.ExitCode
+            Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ExitCode). Try running as admin."
         }          
     }
 
@@ -100,6 +99,7 @@ function searchAndDestroy {
                 uninstallAll $apps
             } catch {
                 Write-Error "Error while attempting uninstall : $Error"
+		        SearchAgain? 1
             }
         } elseif (!$uninst) {
             searchAgain? 0
@@ -114,9 +114,9 @@ function searchAndDestroy {
 #START EXECUTION
 ################
 
-Write-Warning "This program could destroy your computer."
-Start-Sleep -Seconds 1
-$continue = YesOrNo -Prompt "Do you wish to continue? (Y/N) "
+Write-Warning "This program has the ability to sequentially uninstall multiple applications. Tread carefully! Press ctrl+C to abort a batch uninstall that is underway."
+Start-Sleep -Milliseconds 500
+$continue = YesOrNo -Prompt "Do you wish to continue to search? (Y/N) "
 
 if($continue) {
     searchAndDestroy
