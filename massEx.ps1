@@ -9,6 +9,11 @@ function Green
     process { Write-Host $_ -ForegroundColor Green }
 }
 
+function Yellow
+{
+    process { Write-Host $_ -ForegroundColor Yellow }
+}
+
 function Red
 {
     process { Write-Host $_ -ForegroundColor Red }
@@ -43,6 +48,20 @@ function YesOrNo {
     }
 }
 
+function tryStop {
+    param($name)
+
+    $continue = YesOrNo -Prompt "Would you like to search for the process and attempt to stop it? (Y/N) "
+
+    if ($continue) {
+        #search for processes using $name and stop them
+        Write-Host "Disgruntled sounds of effort" | Yellow
+        return $true
+    } elseif (!$continue) {
+        return $false
+    }
+}
+
 function uninstallAll {
     param ($List, $name)
 
@@ -69,13 +88,21 @@ function uninstallAll {
 
         if ($proc.ExitCode -eq 0) {
             #goodtimes
-            Write-Output "Uninstall of $($app.DisplayName) was successful."
+            Write-Host "Uninstall of $($App.DisplayName) was successful."
             $status.successCount += 1
         } elseif ($proc.ExitCode -eq 1603) {
             #process running
-            Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running. Try closing the process."
-            $status.failCount += 1
-            $status.error = $true
+            Write-Host "$($app.DisplayName) couldn't be uninstalled because it is running." | Red
+            $stopped = tryStop $name
+
+            if($stopped) {
+                Write-Host "Reattempting uninstall of $($App.DisplayName)" | Yellow
+                uninstallThis $App
+            } elseif (!$stopped) {
+                $status.failCount += 1
+                $status.error = $true
+            }
+
         } else {
             #awshucks
             Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ExitCode)."
@@ -87,11 +114,9 @@ function uninstallAll {
     }
 
     foreach ($app in $List) {
-        Write-Output "Attempting uninstall of $($app.DisplayName)..."
+        Write-Host "Attempting uninstall of $($app.DisplayName)..."
         $status.total += 1
-        $proc = uninstallThis $app
-        
-              
+        $proc = uninstallThis $app         
     }
 
     if ($status.error) {
@@ -105,7 +130,6 @@ function uninstallAll {
 }
 
 function searchAndDestroy {
-
     function searchAgain {
         param ($code)
         $searchAgain = YesOrNo "Search for another? (Y/N) "
@@ -134,7 +158,7 @@ function searchAndDestroy {
                 Write-Warning $proc.message
                 searchAgain 1
             } else {
-                Write-Output $proc.message | Green
+                Write-Host $proc.message | Green
                 searchAgain 0
             }
             
@@ -142,7 +166,7 @@ function searchAndDestroy {
             SearchAgain 0
         }
     } else {
-        Write-Output "No programs with a name containing `"$name`" were found." | Red
+        Write-Host "No programs with a name containing `"$name`" were found." | Red
         SearchAgain 0
     }
 }
