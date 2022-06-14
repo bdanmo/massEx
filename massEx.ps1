@@ -61,7 +61,7 @@ function uninstallAll {
             if( $App.UninstallString -match "^msiexec" ){
                "$( $App.UninstallString -replace '/I', '/X' ) /qn /norestart"   
             } else {
-                $App.UninstallString
+                "$($App.UninstallString)"
             }
         
         Write-Output "Uninstall Path: $uninstall"
