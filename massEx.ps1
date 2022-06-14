@@ -32,18 +32,20 @@ function sayBye {
         Exit($Code)
 }
  
-function YesOrNo {
-    param ($Prompt)
+function insist {
+    param ($a, $b, $Prompt)
 
+    $a = $a.toUpper()
+    $b = $b.toUpper()
     $reply = Read-Host -Prompt $Prompt
 
-    while("Y","N" -notcontains $reply.toUpper()){
+    while($a, $b -notcontains $reply.toUpper()){
 	    $reply = Read-Host -Prompt $Prompt
     }
 
-    if ($reply.ToUpper() -eq "Y") {
+    if ($reply.ToUpper() -eq $a) {
         return $true
-    } elseif ($reply.ToUpper() -eq "N") {
+    } elseif ($reply.ToUpper() -eq $b) {
         return $false
     }
 }
@@ -51,11 +53,13 @@ function YesOrNo {
 function tryStop {
     param($name)
 
-    $continue = YesOrNo -Prompt "Would you like to search for the process and attempt to stop it? (Y/N) "
+    $continue = insist y n "Would you like to search for the process and attempt to stop it? (Y/N) "
 
     if ($continue) {
         #search for processes using $name and stop them
-        Write-Host "Disgruntled sounds of effort" | Yellow
+        $pList = Get-Process $name
+        Write-Host $pList
+        
         return $true
     } elseif (!$continue) {
         return $false
@@ -83,7 +87,8 @@ function uninstallAll {
                 "$($App.UninstallString)"
             }
         
-        Write-Output "Uninstall Path: $uninstall"
+        Write-Host "Uninstall Path: $uninstall"
+        Write-Host $App
         $proc = Start-Process -Filepath cmd -ArgumentList "/C", $uninstall -NoNewWindow -PassThru -Wait
 
         if ($proc.ExitCode -eq 0) {
@@ -132,7 +137,7 @@ function uninstallAll {
 function searchAndDestroy {
     function searchAgain {
         param ($code)
-        $searchAgain = YesOrNo "Search for another? (Y/N) "
+        $searchAgain = insist y n "Search for another? (Y/N) "
         if ($searchAgain) {searchAndDestroy}
         elseif (!$searchAgain) {sayBye $code}
     }
@@ -150,7 +155,7 @@ function searchAndDestroy {
     if ($apps) {
         $appList = $apps | Select-Object -Property DisplayName, Publisher
         Write-Output $appList | Out-Host
-        $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
+        $uninst = insist y n "Uninstall these apps? (Y/N) "
 
         if ($uninst) {
             $proc = uninstallAll $apps $name
@@ -177,7 +182,7 @@ function searchAndDestroy {
 
 Write-Warning "This program has the ability to sequentially uninstall multiple applications. Tread carefully! Press ctrl+C to abort a batch uninstall that is underway."
 Start-Sleep -Milliseconds 500
-$continue = YesOrNo -Prompt "Do you wish to continue to search? (Y/N) "
+$continue = insist y n "Do you wish to continue? (Y/N) "
 
 if($continue) {
     searchAndDestroy
