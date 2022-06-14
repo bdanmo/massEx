@@ -44,7 +44,7 @@ function YesOrNo {
 }
 
 function uninstallAll {
-    param ($List)
+    param ($List, $name)
 
     $status = [PSCustomObject]@{
         error = $false
@@ -66,14 +66,7 @@ function uninstallAll {
         
         Write-Output "Uninstall Path: $uninstall"
         $proc = Start-Process -Filepath cmd -ArgumentList "/C", $uninstall -NoNewWindow -PassThru -Wait
-        return $proc
-    }
 
-    foreach ($app in $List) {
-        Write-Output "Attempting uninstall of $($app.DisplayName)..."
-        $status.total += 1
-        $proc = uninstallThis $app
-        
         if ($proc.ExitCode -eq 0) {
             #goodtimes
             Write-Output "Uninstall of $($app.DisplayName) was successful."
@@ -88,7 +81,17 @@ function uninstallAll {
             Write-Error "$($app.DisplayName) could not be uninstalled. Error code: $($proc.ExitCode)."
             $status.failCount += 1
             $status.error = $true
-        }          
+        } 
+        
+        return $proc
+    }
+
+    foreach ($app in $List) {
+        Write-Output "Attempting uninstall of $($app.DisplayName)..."
+        $status.total += 1
+        $proc = uninstallThis $app
+        
+              
     }
 
     if ($status.error) {
@@ -126,7 +129,7 @@ function searchAndDestroy {
         $uninst = YesOrNo -Prompt "Uninstall these apps? (Y/N) "
 
         if ($uninst) {
-            $proc = uninstallAll $apps
+            $proc = uninstallAll $apps $name
             if ($proc.error) {
                 Write-Warning $proc.message
                 searchAgain 1
