@@ -79,7 +79,7 @@ function uninstallAll {
             Write-Output "Uninstall of $($app.DisplayName) was successful."
             $status.successCount += 1
         } elseif ($proc.ExitCode -eq 1603) {
-            #process running or needs admin
+            #process running
             Write-Error "$($app.DisplayName) couldn't be uninstalled because it is running. Try closing the process."
             $status.failCount += 1
             $status.error = $true
